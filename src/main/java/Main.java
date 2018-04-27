@@ -12,47 +12,44 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
     static final String HEXES = "0123456789ABCDEF";
+    static int ttl = 1;
+    static int port = 8888;
+    static String groupName = "225.0.0.38";
 
 
     public static void main(String[] args) throws IOException {
 
         final Pcap pcap = Pcap.openStream("C:\\category62\\rekam-1.pcap");
 
+
         pcap.loop(new PacketHandler() {
             @Override
             public boolean nextPacket(Packet packet) throws IOException {
-                DatagramSocket socket;
                 InetAddress group;
-                socket = new DatagramSocket();
-
-                group = InetAddress.getByName("224.0.0.3");
+                MulticastSocket s = new MulticastSocket(port);
+                group = InetAddress.getByName(groupName);
+                s.joinGroup(group);
 
                 DatagramPacket packet1;
 
-               /* if (packet.hasProtocol(Protocol.TCP)) {
-
-                    TCPPacket tcpPacket = (TCPPacket) packet.getPacket(Protocol.TCP);
-                    Buffer buffer = tcpPacket.getPayload();
-                    if (buffer != null) {
-                        System.out.println("TCP: " + buffer);
-                    }
-                } else */
                 if (packet.hasProtocol(Protocol.UDP)) {
 
                     UDPPacket udpPacket = (UDPPacket) packet.getPacket(Protocol.UDP);
                     Buffer buffer = udpPacket.getPayload();
-                    byte[] data = new byte[1024];
+                    byte[] data = new byte[1048];
                     buffer.getByes(data);
 
                     if(data[0] == 0x3e) {
-                        packet1 = new DatagramPacket(data, data.length, group, 8888);
-                        socket.send(packet1);
+                        packet1 = new DatagramPacket(data, data.length, group, port);
+                        //socket.send(packet1);
+                        s.send(packet1);
                         System.out.println("UDP: " + getHex(data));
-                        socket.close();
+                        //System.out.println("Length: " + data.length);
                         try {
                             TimeUnit.SECONDS.sleep(1);
                         } catch (InterruptedException e) {
